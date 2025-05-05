@@ -5,6 +5,7 @@ from telebot import types
 import datetime
 import time
 import threading
+import pytz  # إضافة مكتبة pytz
 
 # ---------- إعداد Flask لتشغيل keep_alive ----------
 app = Flask('')
@@ -128,7 +129,8 @@ def add_task(msg, user_id, task_text):
     time_str = msg.text.strip()
     try:
         hour, minute = map(int, time_str.split(":"))
-        now = datetime.datetime.now()
+        tz = pytz.timezone('Asia/Dubai')
+        now = datetime.datetime.now(tz)
         task_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
         if task_time < now:
             task_time += datetime.timedelta(days=1)
@@ -177,7 +179,8 @@ def edit_task_text(msg, user_id, idx):
 def update_time(msg, user_id, task_idx):
     try:
         hour, minute = map(int, msg.text.strip().split(":"))
-        now = datetime.datetime.now()
+        tz = pytz.timezone('Asia/Dubai')
+        now = datetime.datetime.now(tz)
         task_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
         if task_time < now:
             task_time += datetime.timedelta(days=1)
@@ -219,27 +222,21 @@ def is_back(msg):
 def send_main_menu(user_id):
     bot.send_message(user_id, "تم الرجوع للقائمة الرئيسية:", reply_markup=main_menu())
 
-# ---------- مؤقت التذكير (تم التعديل هنا) ----------
+# ---------- مؤقت التذكير ----------
 def reminder_loop():
-    print("Reminder loop started...")
+    tz = pytz.timezone('Asia/Dubai')
     while True:
-        now = datetime.datetime.now().strftime("%H:%M")
+        now = datetime.datetime.now(tz).strftime("%H:%M")
         for user_id in list(tasks.keys()):
             for idx, task in enumerate(tasks[user_id]):
-                task_time = task.get('time')
-                if not task['done']:
-                    print(f"الآن: {now} | مهمة: {task['text']} | وقت المهمة: {task_time}")
-                if not task['done'] and task_time == now:
-                    try:
-                        bot.send_message(user_id, f"⏰ حان وقت المهمة: {task['text']}")
-                        markup = types.InlineKeyboardMarkup()
-                        markup.add(
-                            types.InlineKeyboardButton("✅ نعم", callback_data=f"done_{user_id}_{idx}"),
-                            types.InlineKeyboardButton("❌ لا", callback_data=f"redo_{user_id}_{idx}")
-                        )
-                        bot.send_message(user_id, "هل أنهيت المهمة؟", reply_markup=markup)
-                    except Exception as e:
-                        print(f"خطأ أثناء إرسال التذكير: {e}")
+                if not task['done'] and task['time'] == now:
+                    bot.send_message(user_id, f"⏰ حان وقت المهمة: {task['text']}")
+                    markup = types.InlineKeyboardMarkup()
+                    markup.add(
+                        types.InlineKeyboardButton("✅ نعم", callback_data=f"done_{user_id}_{idx}"),
+                        types.InlineKeyboardButton("❌ لا", callback_data=f"redo_{user_id}_{idx}")
+                    )
+                    bot.send_message(user_id, f"هل أنهيت المهمة؟", reply_markup=markup)
         time.sleep(60)
 
 # تشغيل التذكير في خلفية
