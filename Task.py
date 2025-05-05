@@ -219,20 +219,27 @@ def is_back(msg):
 def send_main_menu(user_id):
     bot.send_message(user_id, "تم الرجوع للقائمة الرئيسية:", reply_markup=main_menu())
 
-# ---------- مؤقت التذكير ----------
+# ---------- مؤقت التذكير (تم التعديل هنا) ----------
 def reminder_loop():
+    print("Reminder loop started...")
     while True:
         now = datetime.datetime.now().strftime("%H:%M")
         for user_id in list(tasks.keys()):
             for idx, task in enumerate(tasks[user_id]):
-                if not task['done'] and task['time'] == now:
-                    bot.send_message(user_id, f"⏰ حان وقت المهمة: {task['text']}")
-                    markup = types.InlineKeyboardMarkup()
-                    markup.add(
-                        types.InlineKeyboardButton("✅ نعم", callback_data=f"done_{user_id}_{idx}"),
-                        types.InlineKeyboardButton("❌ لا", callback_data=f"redo_{user_id}_{idx}")
-                    )
-                    bot.send_message(user_id, f"هل أنهيت المهمة؟", reply_markup=markup)
+                task_time = task.get('time')
+                if not task['done']:
+                    print(f"الآن: {now} | مهمة: {task['text']} | وقت المهمة: {task_time}")
+                if not task['done'] and task_time == now:
+                    try:
+                        bot.send_message(user_id, f"⏰ حان وقت المهمة: {task['text']}")
+                        markup = types.InlineKeyboardMarkup()
+                        markup.add(
+                            types.InlineKeyboardButton("✅ نعم", callback_data=f"done_{user_id}_{idx}"),
+                            types.InlineKeyboardButton("❌ لا", callback_data=f"redo_{user_id}_{idx}")
+                        )
+                        bot.send_message(user_id, "هل أنهيت المهمة؟", reply_markup=markup)
+                    except Exception as e:
+                        print(f"خطأ أثناء إرسال التذكير: {e}")
         time.sleep(60)
 
 # تشغيل التذكير في خلفية
