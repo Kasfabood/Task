@@ -223,25 +223,32 @@ def send_main_menu(user_id):
 def reminder_loop():
     while True:
         try:
-            now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=4))).strftime("%H:%M")  # توقيت الإمارات
-            print(f"[Reminder Loop] Current time: {now}")
+            now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=4))).strftime("%H:%M")
             for user_id in list(tasks.keys()):
                 for idx, task in enumerate(tasks[user_id]):
-                    print(f"Checking task {task['text']} for user {user_id}")
                     if not task['done'] and task['time'] == now:
-                        print(f"Sending reminder for task: {task['text']}")
                         markup = types.InlineKeyboardMarkup()
                         markup.add(
                             types.InlineKeyboardButton("✅ نعم", callback_data=f"done_{user_id}_{idx}"),
                             types.InlineKeyboardButton("❌ لا", callback_data=f"redo_{user_id}_{idx}")
                         )
                         bot.send_message(user_id, f"⏰ حان وقت المهمة: {task['text']}")
-                        bot.send_message(user_id, f"هل أنهيت المهمة؟", reply_markup=markup)
+                        bot.send_message(user_id, "هل أنهيت المهمة؟", reply_markup=markup)
         except Exception as e:
             print("خطأ في reminder_loop:", e)
         time.sleep(60)
 
-# تشغيل التذكير في خلفية
+# ---------- تشغيل البوت مع حماية ----------
+def run_bot():
+    while True:
+        try:
+            bot.polling(non_stop=True)
+        except Exception as e:
+            print("❗ حدث خطأ في polling، سيتم إعادة التشغيل بعد 15 ثانية:", e)
+            time.sleep(15)
+
+# تشغيل التذكير في الخلفية
 threading.Thread(target=reminder_loop, daemon=True).start()
 
-bot.polling(non_stop=True)
+# تشغيل البوت داخل حلقة حماية
+run_bot()
